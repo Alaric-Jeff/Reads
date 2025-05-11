@@ -1,0 +1,130 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Genres {
+  Horror
+  Comedy
+  Romance
+  Fantasy
+  Psychological
+  Thriller
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique 
+  password  String
+  username  String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  books     Book[]    // One-to-Many: User can create multiple books
+  library   Library?  // One-to-One: User has one library
+  loves     Love[]    // One-to-Many: User can love multiple books
+  comments  Comment[] // One-to-Many: User can make multiple comments
+}
+
+model Book {
+  id        String      @id @default(uuid())
+  title     String
+  author    User        @relation(fields: [userId], references: [id])
+  userId    Int
+  pages     BookPage[]  // One-to-Many: Book has multiple pages
+  genres    BookGenre[] // Many-to-Many: Book can have multiple genres
+  loves     Love[]      // One-to-Many: Book can be loved by multiple users
+  comments  Comment[]   // One-to-Many: Book can have multiple comments
+  libraries BookLibrary[] // Many-to-Many: Book can be in multiple libraries
+  shelves   BookShelf[]  // Many-to-Many: Book can be in multiple shelves
+}
+
+model BookGenre {
+  id        Int      @id @default(autoincrement())
+  book      Book     @relation(fields: [bookId], references: [id])
+  bookId    String
+  genre     Genres
+  createdAt DateTime @default(now())
+
+  @@unique([bookId, genre])
+}
+
+model BookLibrary {
+  id        Int      @id @default(autoincrement()) @unique
+  book      Book     @relation(fields: [bookId], references: [id])
+  bookId    String
+  library   Library  @relation(fields: [libraryId], references: [id])
+  libraryId Int
+  createdAt DateTime @default(now())
+
+  @@unique([bookId, libraryId])
+}
+
+model BookShelf {
+  id        Int      @id @default(autoincrement())
+  book      Book     @relation(fields: [bookId], references: [id])
+  bookId    String
+  shelf     Shelf    @relation(fields: [shelfId], references: [id])
+  shelfId   Int
+  createdAt DateTime @default(now())
+
+  @@unique([bookId, shelfId])
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  book      Book     @relation(fields: [bookId], references: [id])
+  bookId    String
+  createdAt DateTime @default(now())
+}
+
+model Love {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  book      Book     @relation(fields: [bookId], references: [id])
+  bookId    String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, bookId]) // Ensures a user can only love a book once
+}
+
+model BookPage {
+  id        String   @id @default(uuid())
+  content   String?
+  page      Int      @default(1)
+  book      Book     @relation(fields: [bookId], references: [id])
+  bookId    String
+
+  @@unique([bookId, page]) // Ensures page numbers are unique within a book
+}
+
+model Library {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int      @unique  // One-to-One with User
+  books     BookLibrary[] // Many-to-Many with Book
+  shelves   Shelf[]  // One-to-Many with Shelf
+}
+
+model Shelf {
+  id          Int      @id @default(autoincrement())
+  name        String   @default("N/A")
+  totalBooks  Int      @default(0)
+  library     Library  @relation(fields: [libraryId], references: [id])
+  libraryId   Int
+  books       BookShelf[] // Many-to-Many with Book
+}
