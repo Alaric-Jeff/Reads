@@ -4,7 +4,7 @@ import logger from "../../Utils/logger";
 
 const prisma = new PrismaClient();
 
-export const UserService = {
+ const UserService = {
     async CreateUser(email: string, password: string, username: string){
         try{
             const user = await prisma.User.create({
